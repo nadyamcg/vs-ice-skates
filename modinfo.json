@@ -1,0 +1,13 @@
+{
+    "type": "code",
+    "modid": "iceskates",
+    "name": "Ice Skates!",
+    "authors": [
+        "nadyamcg"
+    ],
+    "description": "ice skating as a fully featured new movement mechanic.",
+    "version": "0.0.1",
+    "dependencies": {
+        "game": "1.21.5"
+    }
+}
