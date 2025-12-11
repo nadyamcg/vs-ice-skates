@@ -1,0 +1,83 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>false</ImplicitUsings>
+    <DebugType>portable</DebugType>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <BaseOutputPath>bin\</BaseOutputPath>
+    <OutputPath>bin\$(Configuration)\</OutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <ModId>iceskates</ModId>
+    <ModName>Ice Skates!</ModName>
+    <ModVersion>0.0.1</ModVersion>
+    <GameVersion>1.21.5</GameVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Allow override via VINTAGE_STORY environment variable -->
+    <GameDirectory Condition="'$(VINTAGE_STORY)' != ''">$(VINTAGE_STORY)</GameDirectory>
+    <!-- Vintage Story installation path - auto-detect for cross-platform compatibility -->
+    <GameDirectory Condition="'$(GameDirectory)' == '' AND '$(OS)' == 'Windows_NT'">$(AppData)/Vintagestory</GameDirectory>
+    <!-- Flatpak installation on Linux -->
+    <GameDirectory Condition="'$(GameDirectory)' == '' AND '$(OS)' != 'Windows_NT' AND Exists('/var/lib/flatpak/app/at.vintagestory.VintageStory')">/var/lib/flatpak/app/at.vintagestory.VintageStory/x86_64/stable/active/files/extra/vintagestory</GameDirectory>
+    <!-- AUR/system installation on Linux -->
+    <GameDirectory Condition="'$(GameDirectory)' == '' AND '$(OS)' != 'Windows_NT' AND Exists('/opt/vintagestory')">/opt/vintagestory</GameDirectory>
+    <!-- Standard Linux installation -->
+    <GameDirectory Condition="'$(GameDirectory)' == '' AND '$(OS)' != 'Windows_NT' AND !Exists('/var/lib/flatpak/app/at.vintagestory.VintageStory')">$(HOME)/.config/VintagestoryData</GameDirectory>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Exclude build tools from compilation -->
+    <Compile Remove="build\**" />
+    <EmbeddedResource Remove="build\**" />
+    <None Remove="build\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Reference Vintage Story API -->
+    <Reference Include="VintagestoryAPI">
+      <HintPath>$(GameDirectory)/VintagestoryAPI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="VSEssentials">
+      <HintPath>$(GameDirectory)/Mods/VSEssentials.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="VSCreativeMod">
+      <HintPath>$(GameDirectory)/Mods/VSCreativeMod.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="VSSurvivalMod">
+      <HintPath>$(GameDirectory)/Mods/VSSurvivalMod.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- HarmonyLib for patching game code -->
+    <PackageReference Include="Lib.Harmony" Version="2.3.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Include modinfo.json in output -->
+    <None Include="modinfo.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Include assets in output -->
+    <None Include="assets\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- Post-build: Copy to Vintage Story Mods folder (optional) -->
+  <Target Name="CopyToModsFolder" AfterTargets="PostBuildEvent" Condition="'$(VINTAGE_STORY_MODS)' != ''">
+    <ItemGroup>
+      <ModFiles Include="$(OutputPath)**\*.*" />
+    </ItemGroup>
+    <Message Text="Copying mod to $(VINTAGE_STORY_MODS)\$(ModId)" Importance="high" />
+    <Copy SourceFiles="@(ModFiles)" DestinationFolder="$(VINTAGE_STORY_MODS)\$(ModId)\%(RecursiveDir)" />
+  </Target>
+
+</Project>
