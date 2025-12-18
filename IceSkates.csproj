@@ -20,29 +20,33 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <!-- Allow override via VINTAGE_STORY environment variable -->
+    <!-- allow override via VINTAGE_STORY environment variable -->
     <GameDirectory Condition="'$(VINTAGE_STORY)' != ''">$(VINTAGE_STORY)</GameDirectory>
     <!-- Vintage Story installation path - auto-detect for cross-platform compatibility -->
     <GameDirectory Condition="'$(GameDirectory)' == '' AND '$(OS)' == 'Windows_NT'">$(AppData)/Vintagestory</GameDirectory>
-    <!-- Flatpak installation on Linux -->
+    <!-- flatpak installation on Linux -->
     <GameDirectory Condition="'$(GameDirectory)' == '' AND '$(OS)' != 'Windows_NT' AND Exists('/var/lib/flatpak/app/at.vintagestory.VintageStory')">/var/lib/flatpak/app/at.vintagestory.VintageStory/x86_64/stable/active/files/extra/vintagestory</GameDirectory>
     <!-- AUR/system installation on Linux -->
     <GameDirectory Condition="'$(GameDirectory)' == '' AND '$(OS)' != 'Windows_NT' AND Exists('/opt/vintagestory')">/opt/vintagestory</GameDirectory>
-    <!-- Standard Linux installation -->
+    <!-- standard Linux installation -->
     <GameDirectory Condition="'$(GameDirectory)' == '' AND '$(OS)' != 'Windows_NT' AND !Exists('/var/lib/flatpak/app/at.vintagestory.VintageStory')">$(HOME)/.config/VintagestoryData</GameDirectory>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Exclude build tools from compilation -->
+    <!-- exclude build tools from compilation -->
     <Compile Remove="build\**" />
     <EmbeddedResource Remove="build\**" />
     <None Remove="build\**" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Reference Vintage Story API -->
+    <!-- reference Vintage Story API -->
     <Reference Include="VintagestoryAPI">
       <HintPath>$(GameDirectory)/VintagestoryAPI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="VintagestoryLib">
+      <HintPath>$(GameDirectory)/VintagestoryLib.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="VSEssentials">
@@ -57,7 +61,7 @@
       <HintPath>$(GameDirectory)/Mods/VSSurvivalMod.dll</HintPath>
       <Private>false</Private>
     </Reference>
-  </ItemGroup>
+    </ItemGroup>
 
   <ItemGroup>
     <!-- HarmonyLib for patching game code -->
@@ -65,19 +69,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Include modinfo.json in output -->
+    <!-- include modinfo.json in output -->
     <None Include="modinfo.json" CopyToOutputDirectory="PreserveNewest" />
-    <!-- Include assets in output -->
+    <!-- include assets in output -->
     <None Include="assets\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
-
-  <!-- Post-build: Copy to Vintage Story Mods folder (optional) -->
-  <Target Name="CopyToModsFolder" AfterTargets="PostBuildEvent" Condition="'$(VINTAGE_STORY_MODS)' != ''">
-    <ItemGroup>
-      <ModFiles Include="$(OutputPath)**\*.*" />
-    </ItemGroup>
-    <Message Text="Copying mod to $(VINTAGE_STORY_MODS)\$(ModId)" Importance="high" />
-    <Copy SourceFiles="@(ModFiles)" DestinationFolder="$(VINTAGE_STORY_MODS)\$(ModId)\%(RecursiveDir)" />
-  </Target>
 
 </Project>

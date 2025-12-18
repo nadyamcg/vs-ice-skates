@@ -1,20 +1,24 @@
 using System;
 using HarmonyLib;
 using IceSkates.src.Commands;
+using IceSkates.src.CameraControl;
+using IceSkates.src.Hud;
+using IceSkates.src.Movement;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Server;
+using IceSkates.src.Config;
 
 namespace IceSkates.src
 {
     /// <summary>
-    /// Main mod system for Ice Skates - handles initialization and coordination of all subsystems
+    /// main mod system for Ice Skates - handles initialization and coordination of all subsystems
     /// </summary>
     public class IceSkatesModSystem : ModSystem
     {
         public const string ModId = "iceskates";
 
-        // Singleton instance for easy access from other classes
+        // singleton instance for easy access from other classes
         public static IceSkatesModSystem Instance { get; private set; } = null!;
 
         // API references
@@ -22,13 +26,22 @@ namespace IceSkates.src
         public ICoreClientAPI? ClientApi { get; private set; }
         public ICoreServerAPI? ServerApi { get; private set; }
 
-        // Configuration system
+        // configuration system
         public IceSkatesConfig Config { get; private set; } = null!;
 
-        // Harmony instance for patching
+        // harmony instance for patching
         private Harmony? _harmony;
 
-        // Logger shortcut
+        // camera controller (client-side only)
+        private SkatingCameraController? _cameraController;
+
+        // speed overlay HUD (client-side only)
+        private SpeedOverlay? _speedOverlay;
+
+        // enhanced movement overlay (client-side only)
+        private EnhancedMovementOverlay? _enhancedMovementOverlay;
+
+        // logger shortcut
         public ILogger Logger => Mod.Logger;
 
         public override void Start(ICoreAPI api)
@@ -39,10 +52,10 @@ namespace IceSkates.src
 
             Logger.Notification($"[{ModId}] Ice Skates mod loading...");
 
-            // Load configuration
+            // load configuration
             LoadConfig();
 
-            // Initialize Harmony for patching
+            // initialize Harmony for patching
             _harmony = new Harmony(ModId);
             _harmony.PatchAll();
 
@@ -56,9 +69,77 @@ namespace IceSkates.src
 
             Logger.Notification($"[{ModId}] Client-side initialization...");
 
-            // TODO: Register client-side systems
-            // - Third-person camera integration
-            // - Client-side prediction for smooth skating
+            // initialize skating camera controller
+            _cameraController = new SkatingCameraController();
+            _cameraController.Initialize(api);
+
+            // movement overlay - choose between enhanced or legacy based on config
+            if (Config.ShowSpeedOverlay)
+            {
+                if (Config.UseEnhancedMovementOverlay)
+                {
+                    // enhanced movement overlay with comprehensive metrics
+                    _enhancedMovementOverlay = new EnhancedMovementOverlay(api)
+                    {
+                        UpdateIntervalSeconds = Config.MovementOverlayUpdateInterval
+                    };
+
+                    // parse display mode from config
+                    if (Enum.TryParse<MovementDisplayMode>(Config.MovementOverlayDisplayMode, out var displayMode))
+                    {
+                        _enhancedMovementOverlay.DisplayMode = displayMode;
+                    }
+
+                    // parse speed unit from config
+                    if (Enum.TryParse<SpeedUnit>(Config.MovementOverlaySpeedUnit, out var speedUnit))
+                    {
+                        _enhancedMovementOverlay.SpeedUnit = speedUnit;
+                    }
+
+                    // apply style settings
+                    _enhancedMovementOverlay.UpdateStyle(
+                        Config.MovementOverlayFontSize,
+                        EnumDialogArea.LeftTop,
+                        Config.MovementOverlayOffsetX,
+                        Config.MovementOverlayOffsetY
+                    );
+
+                    api.Event.LevelFinalize += () =>
+                    {
+                        _enhancedMovementOverlay?.TryOpen();
+                        _enhancedMovementOverlay?.Reset();
+                    };
+
+                    api.Event.LeaveWorld += () => _enhancedMovementOverlay?.TryClose();
+
+                    Logger.Notification($"[{ModId}] Enhanced movement overlay initialized (Mode: {Config.MovementOverlayDisplayMode})");
+                }
+                else
+                {
+                    // legacy simple speed overlay
+                    _speedOverlay = new SpeedOverlay(api)
+                    {
+                        UpdateIntervalSeconds = 0.25,
+                        HorizontalOnly = true
+                    };
+
+                    api.Event.LevelFinalize += () =>
+                    {
+                        _speedOverlay?.TryOpen();
+                        _speedOverlay?.Reset();
+                    };
+
+                    api.Event.LeaveWorld += () => _speedOverlay?.TryClose();
+
+                    Logger.Notification($"[{ModId}] Legacy speed overlay initialized");
+                }
+            }
+
+            // register client-side commands for overlay control
+            ClientCommands.Register(api);
+
+            // TODO: register other client-side systems
+            // - client-side prediction for smooth skating
             // - HUD elements for debug mode
         }
 
@@ -69,15 +150,14 @@ namespace IceSkates.src
 
             Logger.Notification($"[{ModId}] Server-side initialization...");
 
-            // Register developer commands
+            // register developer commands
             RegisterCommands(api);
 
-            // TODO: Register server-side systems
-            // - Physics patches
-            // - Network channels for synchronization
-            // - Config export/logging system
+            // TODO: register server-side systems
+            // - physics patches
+            // - network channels for synchronization
+            // - config export/logging system
         }
-
         private void LoadConfig()
         {
             try
@@ -107,7 +187,7 @@ namespace IceSkates.src
             Logger.Notification($"[{ModId}] Reloading configuration...");
             LoadConfig();
 
-            // TODO: Broadcast config changes to all connected clients
+            // TODO: broadcast config changes to all connected clients
         }
 
         private void RegisterCommands(ICoreServerAPI api)
@@ -122,7 +202,19 @@ namespace IceSkates.src
         public override void Dispose()
         {
             base.Dispose();
+
+            // clean up overlays
+            _speedOverlay?.Dispose();
+            _enhancedMovementOverlay?.Dispose();
+
             Logger.Notification($"[{ModId}] Ice Skates mod unloading...");
         }
+
+        /// <summary>
+        /// get access to the enhanced movement overlay (if enabled)
+        /// useful for other systems that want to read movement metrics
+        /// </summary>
+        public EnhancedMovementOverlay? GetEnhancedMovementOverlay() => _enhancedMovementOverlay;
     }
 }
+

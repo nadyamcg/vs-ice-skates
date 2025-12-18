@@ -3,18 +3,19 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using IceSkates.src.Config;
 
 namespace IceSkates.src.Commands
 {
     /// <summary>
-    /// Exports configuration to dedicated log files for playtester sharing and analysis
+    /// exports configuration to dedicated log files for playtester sharing and analysis
     /// </summary>
     public static class ConfigExporter
     {
         private const string ExportDirectory = "ModConfig/IceSkates/exports";
 
         /// <summary>
-        /// Export current configuration to a timestamped log file
+        /// export current configuration to a timestamped log file
         /// </summary>
         public static string ExportToLog(IceSkatesConfig config)
         {
@@ -37,7 +38,7 @@ namespace IceSkates.src.Commands
             sb.AppendLine("=================================================================");
             sb.AppendLine();
 
-            // Export all config properties grouped by category
+            // export all config properties grouped by category
             var properties = typeof(IceSkatesConfig).GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(p => p.CanRead);
 
@@ -89,7 +90,7 @@ namespace IceSkates.src.Commands
         }
 
         /// <summary>
-        /// Export a minimal "interesting config" - just the physics values
+        /// export a minimal "interesting config" - just the physics values
         /// </summary>
         public static string ExportPhysicsOnly(IceSkatesConfig config, string note = "")
         {

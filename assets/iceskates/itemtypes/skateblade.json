@@ -1,0 +1,129 @@
+{
+  "code": "skateblade",
+  "class": "Item",
+  "variantgroups": [
+    {
+      "code": "metal",
+      "states": [
+        "iron",
+        "steel"
+      ]
+    }
+  ],
+  "attributes": {
+    "handbook": {
+      "groupBy": ["skateblade-*"]
+    },
+    "toolrackTransform": {
+      "translation": {
+        "x": 0.36,
+        "y": 0.47,
+        "z": 0.43
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 90
+      },
+      "scale": 0.9
+    }
+  },
+  "behaviors": [
+    {
+      "name": "GroundStorable",
+      "properties": {
+        "layout": "WallHalves",
+        "wallOffY": 1,
+        "sprintKey": true,
+        "selectionBox": {
+          "x1": 0.3,
+          "y1": 0,
+          "z1": 0.3,
+          "x2": 0.7,
+          "y2": 0.1,
+          "z2": 0.7
+        },
+        "collisionBox": {
+          "x1": 0.3,
+          "y1": 0,
+          "z1": 0.3,
+          "x2": 0.7,
+          "y2": 0.1,
+          "z2": 0.7
+        }
+      }
+    }
+  ],
+  "shape": { "base": "item/empty" },
+  "texturesByType": {
+    "*-iron": {
+      "metal": { "base": "block/metal/ingot/iron" }
+    },
+    "*-steel": {
+      "metal": { "base": "block/metal/ingot/steel" }
+    }
+  },
+  "creativeinventory": {
+    "general": ["*"],
+    "items": ["*"],
+    "tools": ["*"]
+  },
+  "maxstacksize": 16,
+  "guiTransform": {
+    "translation": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "rotation": {
+      "x": -35,
+      "y": 45,
+      "z": 0
+    },
+    "scale": 2.5
+  },
+  "fpHandTransform": {
+    "translation": {
+      "x": 0,
+      "y": 0.2,
+      "z": 0
+    },
+    "rotation": {
+      "x": 90,
+      "y": 0,
+      "z": 0
+    },
+    "scale": 1.8
+  },
+  "tpHandTransform": {
+    "translation": {
+      "x": -0.9,
+      "y": -0.5,
+      "z": -0.6
+    },
+    "rotation": {
+      "x": -90,
+      "y": 0,
+      "z": 0
+    },
+    "scale": 0.6
+  },
+  "groundTransform": {
+    "translation": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "rotation": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "scale": 3
+  },
+  "durabilityByType": {
+    "*-iron": 200,
+    "*-steel": 400
+  },
+  "tooltip": "Sharp metal blade for crafting ice skates.\n\n"
+}

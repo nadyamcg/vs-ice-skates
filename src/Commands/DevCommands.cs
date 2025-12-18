@@ -3,14 +3,16 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using IceSkates.src.Commands;
+using IceSkates.src.Config;
+using IceSkates.src.Movement;
 using Vintagestory.API.Common;
 using Vintagestory.API.Server;
 
 namespace IceSkates.src.Commands
 {
     /// <summary>
-    /// Developer commands for runtime tweaking of ice skating parameters
-    /// Requires OP privileges on server
+    /// developer commands for runtime tweaking of ice skating parameters
+    /// requires OP privileges on server
     /// </summary>
     public static class DevCommands
     {
@@ -56,6 +58,40 @@ namespace IceSkates.src.Commands
                     .WithDescription("Load a physics preset (arcade/simulation/hybrid)")
                     .WithArgs(parsers.Word("preset"))
                     .HandleWith(OnLoadPreset)
+                .EndSubCommand()
+                .BeginSubCommand("camera")
+                    .WithDescription("Override forced third-person camera (on/off)")
+                    .WithArgs(parsers.OptionalWord("mode"))
+                    .HandleWith(OnToggleCamera)
+                .EndSubCommand()
+                // NOTE: overlay commands moved to client-side /overlay command
+                // use /overlay toggle, /overlay mode, /overlay reset, etc.
+                .BeginSubCommand("stride")
+                    .WithDescription("Stride system controls")
+                    .BeginSubCommand("toggle")
+                        .WithDescription("Toggle stride system on/off")
+                        .WithArgs(parsers.OptionalBool("enabled"))
+                        .HandleWith(OnToggleStride)
+                    .EndSubCommand()
+                    .BeginSubCommand("wobble")
+                        .WithDescription("Toggle lateral wobble on/off")
+                        .WithArgs(parsers.OptionalBool("enabled"))
+                        .HandleWith(OnToggleWobble)
+                    .EndSubCommand()
+                    .BeginSubCommand("bob")
+                        .WithDescription("Toggle camera bob on/off")
+                        .WithArgs(parsers.OptionalBool("enabled"))
+                        .HandleWith(OnToggleBob)
+                    .EndSubCommand()
+                    .BeginSubCommand("vanillabob")
+                        .WithDescription("Toggle vanilla head bobbing suppression")
+                        .WithArgs(parsers.OptionalBool("disabled"))
+                        .HandleWith(OnToggleVanillaBob)
+                    .EndSubCommand()
+                    .BeginSubCommand("status")
+                        .WithDescription("Show current stride system status")
+                        .HandleWith(OnStrideStatus)
+                    .EndSubCommand()
                 .EndSubCommand();
         }
 
@@ -70,7 +106,7 @@ namespace IceSkates.src.Commands
                 return TextCommandResult.Error("Usage: /iceskate set <parameter> <value>");
             }
 
-            // Use reflection to find and set the property
+            // use reflection to find and set the property
             var property = typeof(IceSkatesConfig).GetProperty(paramName,
                 BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
 
@@ -89,7 +125,7 @@ namespace IceSkates.src.Commands
                 object? newValue = null;
                 var propertyType = property.PropertyType;
 
-                // Parse value based on property type
+                // parse value based on property type
                 if (propertyType == typeof(bool))
                 {
                     newValue = bool.Parse(valueStr);
@@ -113,12 +149,12 @@ namespace IceSkates.src.Commands
 
                 var oldValue = property.GetValue(config);
                 property.SetValue(config, newValue);
-                config.Validate(); // Ensure values are in valid ranges
+                config.Validate(); // ensure values are in valid ranges
 
-                // Save to disk
+                // save to disk
                 IceSkatesModSystem.Instance.Api.StoreModConfig(config, $"{IceSkatesModSystem.ModId}.json");
 
-                // Auto-export if enabled
+                // auto-export if enabled
                 if (config.AutoExportConfigOnChange)
                 {
                     ConfigExporter.ExportToLog(config);
@@ -168,7 +204,7 @@ namespace IceSkates.src.Commands
             var currentCategory = "";
             foreach (var prop in properties)
             {
-                // Group by naming convention (e.g., "IceTau", "OffIce", etc.)
+                // group by naming convention (e.g., "IceTau", "OffIce", etc.)
                 var category = GetCategory(prop.Name);
                 if (category != currentCategory)
                 {
@@ -213,12 +249,12 @@ namespace IceSkates.src.Commands
 
             if (args.Parsers[0].IsMissing)
             {
-                // Toggle
+                // toggle
                 config.DebugMode = !config.DebugMode;
             }
             else
             {
-                // Set to specific value
+                // set to specific value
                 config.DebugMode = (bool)args[0];
             }
 
@@ -234,7 +270,7 @@ namespace IceSkates.src.Commands
             switch (presetName)
             {
                 case "arcade":
-                    // Easy controls, fast turning, quick stops
+                    // easy controls, fast turning, quick stops
                     config.SetIceTaus(
                         walkUp: 1.5,
                         walkDown: 1.0,
@@ -247,7 +283,7 @@ namespace IceSkates.src.Commands
                     break;
 
                 case "simulation":
-                    // Realistic physics, wide turns, hard to stop
+                    // realistic physics, wide turns, hard to stop
                     config.SetIceTaus(
                         walkUp: 0.5,
                         walkDown: 1.5,
@@ -260,7 +296,7 @@ namespace IceSkates.src.Commands
                     break;
 
                 case "hybrid":
-                    // Balanced approach (default)
+                    // balanced approach (default)
                     config.SetIceTaus(
                         walkUp: 0.8,
                         walkDown: 1.2,
@@ -282,6 +318,129 @@ namespace IceSkates.src.Commands
             return TextCommandResult.Success($"Loaded '{presetName}' preset");
         }
 
+        private static TextCommandResult OnToggleCamera(TextCommandCallingArgs args)
+        {
+            var mode = args[0] as string;
+
+            if (string.IsNullOrEmpty(mode))
+            {
+                return TextCommandResult.Error("Usage: /iceskate camera <on|off>");
+            }
+
+            bool enableOverride = mode.ToLower() switch
+            {
+                "on" => true,
+                "off" => false,
+                _ => throw new ArgumentException($"Invalid mode: {mode}. Use 'on' or 'off'")
+            };
+
+            IceSkates.src.CameraControl.SkatingCameraController.SetCameraOverride(enableOverride);
+
+            return TextCommandResult.Success(
+                enableOverride
+                    ? "Camera override ENABLED - you can use F5 freely (warning: skating may feel weird in first-person!)"
+                    : "Camera override DISABLED - third-person will be forced when wearing skates"
+            );
+        }
+
+        // ============================================
+        // STRIDE SYSTEM COMMANDS
+        // ============================================
+
+        private static TextCommandResult OnToggleStride(TextCommandCallingArgs args)
+        {
+            var config = IceSkatesModSystem.Instance.Config;
+
+            if (args.Parsers[0].IsMissing)
+            {
+                config.EnableStrideSystem = !config.EnableStrideSystem;
+            }
+            else
+            {
+                config.EnableStrideSystem = (bool)args[0];
+            }
+
+            IceSkatesModSystem.Instance.Api.StoreModConfig(config, $"{IceSkatesModSystem.ModId}.json");
+            return TextCommandResult.Success($"Stride system: {(config.EnableStrideSystem ? "ENABLED" : "DISABLED")}");
+        }
+
+        private static TextCommandResult OnToggleWobble(TextCommandCallingArgs args)
+        {
+            var config = IceSkatesModSystem.Instance.Config;
+
+            if (args.Parsers[0].IsMissing)
+            {
+                config.EnableLateralWobble = !config.EnableLateralWobble;
+            }
+            else
+            {
+                config.EnableLateralWobble = (bool)args[0];
+            }
+
+            IceSkatesModSystem.Instance.Api.StoreModConfig(config, $"{IceSkatesModSystem.ModId}.json");
+            return TextCommandResult.Success($"Lateral wobble: {(config.EnableLateralWobble ? "ENABLED" : "DISABLED")}");
+        }
+
+        private static TextCommandResult OnToggleVanillaBob(TextCommandCallingArgs args)
+        {
+            var config = IceSkatesModSystem.Instance.Config;
+
+            if (args.Parsers[0].IsMissing)
+            {
+                config.DisableVanillaBobWhenSkating = !config.DisableVanillaBobWhenSkating;
+            }
+            else
+            {
+                config.DisableVanillaBobWhenSkating = (bool)args[0];
+            }
+
+            IceSkatesModSystem.Instance.Api.StoreModConfig(config, $"{IceSkatesModSystem.ModId}.json");
+            return TextCommandResult.Success($"Vanilla bob suppression: {(config.DisableVanillaBobWhenSkating ? "ENABLED (vanilla bob disabled)" : "DISABLED (vanilla bob active)")}");
+        }
+
+        private static TextCommandResult OnToggleBob(TextCommandCallingArgs args)
+        {
+            var config = IceSkatesModSystem.Instance.Config;
+
+            if (args.Parsers[0].IsMissing)
+            {
+                config.EnableStrideCameraBob = !config.EnableStrideCameraBob;
+            }
+            else
+            {
+                config.EnableStrideCameraBob = (bool)args[0];
+            }
+
+            IceSkatesModSystem.Instance.Api.StoreModConfig(config, $"{IceSkatesModSystem.ModId}.json");
+            return TextCommandResult.Success($"Camera bob: {(config.EnableStrideCameraBob ? "ENABLED" : "DISABLED")}");
+        }
+
+        private static TextCommandResult OnStrideStatus(TextCommandCallingArgs args)
+        {
+            var config = IceSkatesModSystem.Instance.Config;
+            var sb = new StringBuilder();
+
+            sb.AppendLine("=== STRIDE SYSTEM STATUS ===");
+            sb.AppendLine();
+            sb.AppendLine($"Stride System: {(config.EnableStrideSystem ? "ENABLED" : "DISABLED")}");
+            sb.AppendLine($"Lateral Wobble: {(config.EnableLateralWobble ? "ENABLED" : "DISABLED")}");
+            sb.AppendLine($"Camera Bob: {(config.EnableStrideCameraBob ? "ENABLED" : "DISABLED")}");
+            sb.AppendLine();
+            sb.AppendLine("--- STRIDE TIMING ---");
+            sb.AppendLine($"Walk Stride Duration: {config.BaseStrideDuration:F2}s ({1.0 / config.BaseStrideDuration:F2} Hz)");
+            sb.AppendLine($"Sprint Stride Duration: {config.SprintStrideDuration:F2}s ({1.0 / config.SprintStrideDuration:F2} Hz)");
+            sb.AppendLine();
+            sb.AppendLine("--- WOBBLE & BOB ---");
+            sb.AppendLine($"Max Lateral Wobble: {config.MaxLateralWobble:F3} blocks");
+            sb.AppendLine($"Camera Bob Vertical: {config.CameraBobVertical:F3} blocks");
+            sb.AppendLine($"Camera Bob Lateral: {config.CameraBobLateral:F3} blocks");
+            sb.AppendLine($"Camera Bob Roll: {config.CameraBobRoll:F1}°");
+            sb.AppendLine($"Full Intensity Speed: {config.CameraBobFullIntensitySpeed:F1} m/s");
+            sb.AppendLine($"Vanilla Bob Suppression: {(config.DisableVanillaBobWhenSkating ? "ENABLED" : "DISABLED")}");
+
+            return TextCommandResult.Success(sb.ToString());
+        }
+
         private static string GetCategory(string propertyName)
         {
             if (propertyName.StartsWith("IceTau")) return "Ice Physics";
@@ -290,8 +449,9 @@ namespace IceSkates.src.Commands
             if (propertyName.StartsWith("MaxSkating") || propertyName.StartsWith("Minimum")) return "Speed Limits";
             if (propertyName.StartsWith("ThirdPerson") || propertyName.StartsWith("Force") || propertyName.StartsWith("HighSpeed")) return "Camera";
             if (propertyName.StartsWith("Stamina")) return "Stamina (Future)";
-            if (propertyName.StartsWith("Enable") || propertyName.StartsWith("Require")) return "General";
-            if (propertyName.StartsWith("Debug") || propertyName.StartsWith("Auto") || propertyName.StartsWith("Show") || propertyName.StartsWith("Log")) return "Developer Tools";
+            if (propertyName.StartsWith("Stride") || propertyName.StartsWith("CameraBob") || propertyName.StartsWith("MaxLateral") || propertyName.StartsWith("Base") || propertyName.StartsWith("Sprint")) return "Stride System";
+            if (propertyName.StartsWith("Enable")) return "General";
+            if (propertyName.StartsWith("Debug") || propertyName.StartsWith("Auto") || propertyName.StartsWith("Show") || propertyName.StartsWith("Log") || propertyName.StartsWith("Movement")) return "Developer Tools";
             return "Other";
         }
     }

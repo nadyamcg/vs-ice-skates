@@ -1,0 +1,38 @@
+{
+  "item-iceskates-basic": "Basic Ice Skates",
+  "item-iceskates-reinforced": "Reinforced Ice Skates",
+  "item-iceskates-advanced": "Advanced Ice Skates",
+  "item-skateblade-iron": "Iron Skate Blade",
+  "item-skateblade-steel": "Steel Skate Blade",
+
+  "iceskates:handbook-skateblade-iron-title": "Iron Skate Blade",
+  "iceskates:handbook-skateblade-iron-text": "A sharp iron blade used for crafting ice skates.",
+
+  "iceskates:handbook-skateblade-steel-title": "Steel Skate Blade",
+  "iceskates:handbook-skateblade-steel-text": "A durable steel blade for crafting ice skates.",
+
+  "iceskates:handbook-iceskates-basic-title": "Basic Ice Skates",
+  "iceskates:handbook-iceskates-basic-text": "Ice skates allow for extremely fast movement across ice.",
+
+  "iceskates:handbook-iceskates-reinforced-title": "Reinforced Ice Skates",
+  "iceskates:handbook-iceskates-reinforced-text": "Ice skates allow for extremely fast movement across ice.",
+
+  "iceskates:handbook-iceskates-advanced-title": "Advanced Ice Skates",
+  "iceskates:handbook-iceskates-advanced-text": "Ice skates allow for extremely fast movement across ice.",
+
+  "game:tabname-iceskates": "Ice Skating",
+
+  "iceskates:command-set-success": "Set {0} = {1} (was: {2})",
+  "iceskates:command-get-value": "{0} = {1}",
+  "iceskates:command-export-success": "Configuration exported to: {0}",
+  "iceskates:command-reload-success": "Configuration reloaded from file",
+  "iceskates:command-reset-success": "Configuration reset to defaults",
+  "iceskates:command-debug-enabled": "Debug mode: ENABLED",
+  "iceskates:command-debug-disabled": "Debug mode: DISABLED",
+  "iceskates:command-preset-loaded": "Loaded '{0}' preset",
+  "iceskates:command-unknown-parameter": "Unknown parameter: {0}. Use /iceskate list to see all parameters.",
+  "iceskates:command-unknown-preset": "Unknown preset: {0}. Available: arcade, simulation, hybrid",
+  "iceskates:command-error": "Error: {0}",
+
+  "iceskates:config-received": "Received skating configuration from server"
+}
